@@ -5,6 +5,7 @@ using System.Linq;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Double;
 using Sirenix.OdinInspector;
+using System;
 
 public class MLS
 {
@@ -15,7 +16,7 @@ public class MLS
     REvaluator WeightFunction { get; set; }
 
     [ShowInInspector]
-    List<Vector<double>> DataPoints { get; set; }
+    public List<Vector<double>> DataPoints { get; set; }
     
     const double SCALING_FACTOR_MIN = 1d + double.Epsilon;
     const double SCALING_FACTOR_MAX = double.MaxValue;
@@ -25,7 +26,8 @@ public class MLS
     public double ScalingFactor
     {
         get { return _scalingFactor; }
-        set { _scalingFactor = Mathf.Clamp((float)value, (float)SCALING_FACTOR_MIN, (float)SCALING_FACTOR_MAX); }
+        //set { _scalingFactor = Mathf.Clamp((float)value, (float)SCALING_FACTOR_MIN, (float)SCALING_FACTOR_MAX); }
+        set { _scalingFactor = Math.Min(Math.Max(value, SCALING_FACTOR_MIN), SCALING_FACTOR_MAX); }
     }
 
     public MLS(MatrixEvaluator basisMatrix, List<Vector<double>> dataPoints, REvaluator weightFunction, double scalingFactor = SCALING_FACTOR_MIN)

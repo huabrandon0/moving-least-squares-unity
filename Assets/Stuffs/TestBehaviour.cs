@@ -23,10 +23,10 @@ public class TestBehaviour : SerializedMonoBehaviour
     float TimeOffset { get; set; } = 0f;
 
     [SerializeField]
-    public double ScalingFactorMin { get; set; } = 1.01f;
+    public double ScalingFactorMin { get; set; } = 1f;
 
     [SerializeField]
-    public double ScalingFactorMax { get; set; } = 50f;
+    public double ScalingFactorMax { get; set; } = 30f;
 
     void Awake()
     {
@@ -34,7 +34,11 @@ public class TestBehaviour : SerializedMonoBehaviour
         {
             return DenseMatrix.OfArray(new double[,] {
                 { 1 },
-                { x }
+                { x },
+                //{ Math.Pow(x, 2) },
+                //{ Math.Pow(x, 3) },
+                //{ Math.Pow(x, 4) },
+                //{ Math.Pow(x, 5) },
             });
         }
 
@@ -54,23 +58,35 @@ public class TestBehaviour : SerializedMonoBehaviour
             return phi;
         }
 
-        List<Vector<double>> dataPoints = new List<Vector<double>>()
-        {
-            DenseVector.OfArray(new double[] { 1d, 1.4d }),
-            DenseVector.OfArray(new double[] { 2d, 2.3d }),
-            DenseVector.OfArray(new double[] { 3d, 1.7d }),
-            DenseVector.OfArray(new double[] { 4d, 1.9d }),
-            DenseVector.OfArray(new double[] { 5d, 2.7d }),
-            DenseVector.OfArray(new double[] { 6d, 1.6d }),
-            DenseVector.OfArray(new double[] { 7d, 3.3d }),
-            DenseVector.OfArray(new double[] { 8d, 2.2d }),
-            DenseVector.OfArray(new double[] { 9d, 2.5d }),
-            DenseVector.OfArray(new double[] { 10d, 1.9d }),
-        };
+        //List<Vector<double>> dataPoints = new List<Vector<double>>()
+        //{
+        //    DenseVector.OfArray(new double[] { 1d, 1.4d }),
+        //    DenseVector.OfArray(new double[] { 2d, 2.3d }),
+        //    DenseVector.OfArray(new double[] { 3d, 1.7d }),
+        //    DenseVector.OfArray(new double[] { 4d, 1.9d }),
+        //    DenseVector.OfArray(new double[] { 5d, 2.7d }),
+        //    DenseVector.OfArray(new double[] { 6d, 1.6d }),
+        //    DenseVector.OfArray(new double[] { 7d, 3.3d }),
+        //    DenseVector.OfArray(new double[] { 8d, 2.2d }),
+        //    DenseVector.OfArray(new double[] { 9d, 2.5d }),
+        //    DenseVector.OfArray(new double[] { 10d, 1.9d }),
+        //};
+
+        List<Vector<double>> dataPoints = PointManager.Instance.Points.Select((p) => p.Coordinates).ToList();
 
         MLS = new MLS(LinearBasisMatrix, dataPoints, WeightFunction);
 
-        EvaluationPoints = Enumerable.Range(0, 180).Select(i => 1 + i * 0.05d).ToList();
+        StartCoroutine(OscillateScalingFactor());
+    }
+
+    void Update()
+    {
+        List<Vector<double>> dataPoints = PointManager.Instance.Points.Select((p) => p.Coordinates).ToList();
+        MLS.DataPoints = dataPoints;
+
+        double range = dataPoints[dataPoints.Count - 1][0] - dataPoints[0][0];
+        double step = 0.05d;
+        EvaluationPoints = Enumerable.Range(0, (int)Math.Round(range / step)).Select(i => dataPoints[0][0] + i * step).ToList();
     }
 
     IEnumerator OscillateScalingFactor()
