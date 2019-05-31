@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Sirenix.OdinInspector;
+using TMPro;
 
 public class PointMover : SerializedMonoBehaviour
 {
@@ -18,6 +19,12 @@ public class PointMover : SerializedMonoBehaviour
     Point SelectedPoint { get; set; }
 
     Vector3 SelectedPointOffset { get; set; }
+
+    [SerializeField]
+    TextMeshProUGUI PointCoordinateText { get; set; }
+
+    [SerializeField]
+    Vector3 PointCoordinateTextOffset { get; set; } = new Vector3(0f, 20f, 0f);
     
     public IPointMoverState CurrentState { get; private set; }
     IPointMoverState IdleState { get; set; }
@@ -33,11 +40,28 @@ public class PointMover : SerializedMonoBehaviour
         HoldingState = new Holding(this);
         HoveringState = new Hovering(this);
         CurrentState = IdleState;
+
+        HidePointCoordinates();
     }
 
     void Update()
     {
         CurrentState.Update();
+    }
+
+    void DisplayPointCoordinates(Point point)
+    {
+        if (!PointCoordinateText.enabled)
+            PointCoordinateText.enabled = true;
+
+        var screenPoint = Camera.WorldToScreenPoint(point.transform.position);
+        PointCoordinateText.rectTransform.position = screenPoint + (Screen.height / 600f) * PointCoordinateTextOffset;
+        PointCoordinateText.SetText(string.Format("({0:0.00}, {1:0.00})", point.Coordinates[0], point.Coordinates[1]));
+    }
+
+    void HidePointCoordinates()
+    {
+        PointCoordinateText.enabled = false;
     }
 
     public interface IPointMoverState
@@ -62,6 +86,8 @@ public class PointMover : SerializedMonoBehaviour
             Point point = null;
             if (raycastHitSomePoint)
                 point = hit.collider.GetComponent<Point>();
+            
+            PointMover.HidePointCoordinates();
 
             if (raycastHitSomePoint && point != null)
             {
@@ -100,6 +126,8 @@ public class PointMover : SerializedMonoBehaviour
             Point point = null;
             if (raycastHitSomePoint)
                 point = hit.collider.GetComponent<Point>();
+            
+            PointMover.DisplayPointCoordinates(PointMover.SelectedPoint);
 
             if (raycastHitSomePoint && point != null)
             {
@@ -173,6 +201,8 @@ public class PointMover : SerializedMonoBehaviour
             Point point = null;
             if (raycastHitSomePoint)
                 point = hit.collider.GetComponent<Point>();
+            
+            PointMover.DisplayPointCoordinates(PointMover.SelectedPoint);
 
             if (!inputKeyDown)
             {
