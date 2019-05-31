@@ -30,7 +30,7 @@ public class TestBehaviour : SerializedMonoBehaviour
 
     void Awake()
     {
-        Matrix LinearBasisMatrix(double x)
+        Matrix BasisMatrix(double x)
         {
             return DenseMatrix.OfArray(new double[,] {
                 { 1 },
@@ -74,19 +74,19 @@ public class TestBehaviour : SerializedMonoBehaviour
 
         List<Vector<double>> dataPoints = PointManager.Instance.Points.Select((p) => p.Coordinates).ToList();
 
-        MLS = new MLS(LinearBasisMatrix, dataPoints, WeightFunction);
+        MLS = new MLS(BasisMatrix, dataPoints, WeightFunction);
 
         StartCoroutine(OscillateScalingFactor());
     }
 
-    void Update()
+    void LateUpdate()
     {
         List<Vector<double>> dataPoints = PointManager.Instance.Points.Select((p) => p.Coordinates).ToList();
         MLS.DataPoints = dataPoints;
-
         double range = dataPoints[dataPoints.Count - 1][0] - dataPoints[0][0];
         double step = 0.05d;
         EvaluationPoints = Enumerable.Range(0, (int)Math.Round(range / step)).Select(i => dataPoints[0][0] + i * step).ToList();
+        SetLineRendererPoints();
     }
 
     IEnumerator OscillateScalingFactor()
@@ -149,7 +149,6 @@ public class TestBehaviour : SerializedMonoBehaviour
     public void SetScalingFactor(double s)
     {
         MLS.ScalingFactor = s;
-        SetLineRendererPoints();
     }
 
     [Button]
