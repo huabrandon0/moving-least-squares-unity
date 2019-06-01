@@ -46,7 +46,20 @@ public class PointMover : SerializedMonoBehaviour
 
     void Update()
     {
-        CurrentState.Update();
+        Ray mouseScreenPointRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+        bool isMouseOverPoint = Physics.Raycast(mouseScreenPointRay, out RaycastHit pointLayerHit, float.MaxValue, PointLayerMask);
+        bool isMouseOverMovementPlane = Physics.Raycast(mouseScreenPointRay, out RaycastHit movementPlaneLayerHit, float.MaxValue, MovementPlaneLayerMask);
+
+        UpdateInfo frameInfo = new UpdateInfo(
+            Input.GetKeyDown(KeyCode.Mouse0),
+            Input.GetKeyUp(KeyCode.Mouse0),
+            isMouseOverPoint,
+            isMouseOverPoint ? pointLayerHit.collider.GetComponent<Point>() : null,
+            isMouseOverMovementPlane,
+            isMouseOverMovementPlane ? movementPlaneLayerHit.point : Vector3.zero
+        );
+
+        CurrentState.Update(frameInfo);
     }
 
     void DisplayPointCoordinates(Point point)
@@ -66,7 +79,27 @@ public class PointMover : SerializedMonoBehaviour
 
     public interface IPointMoverState
     {
-        void Update();
+        void Update(UpdateInfo updateInfo);
+    }
+
+    public class UpdateInfo
+    {
+        public bool HoldKeyDown { get; private set; }
+        public bool HoldKeyUp { get; private set; }
+        public bool IsMouseOverPoint { get; private set; }
+        public Point Point { get; private set; }
+        public bool IsMouseOverMovementPlane { get; private set; }
+        public Vector3 MovementPlanePoint { get; private set; }
+
+        public UpdateInfo(bool holdKeyDown, bool holdKeyUp, bool isMouseOverPoint, Point point, bool isMouseOverMovementPlane, Vector3 movementPlanePoint)
+        {
+            HoldKeyDown = holdKeyDown;
+            HoldKeyUp = holdKeyUp;
+            IsMouseOverPoint = isMouseOverPoint;
+            Point = point;
+            IsMouseOverMovementPlane = isMouseOverMovementPlane;
+            MovementPlanePoint = movementPlanePoint;
+        }
     }
 
     class Idle : IPointMoverState
@@ -78,30 +111,23 @@ public class PointMover : SerializedMonoBehaviour
             PointMover = point;
         }
 
-        public void Update()
+        public void Update(UpdateInfo updateInfo)
         {
-            bool inputKeyDown = Input.GetKeyDown(KeyCode.Mouse0) || Input.GetKeyDown(KeyCode.F);
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            bool raycastHitSomePoint = Physics.Raycast(ray, out RaycastHit hit, float.MaxValue, PointMover.PointLayerMask);
-            Point point = null;
-            if (raycastHitSomePoint)
-                point = hit.collider.GetComponent<Point>();
-            
             PointMover.HidePointCoordinates();
 
-            if (raycastHitSomePoint && point != null)
+            if (updateInfo.IsMouseOverPoint && updateInfo.Point != null)
             {
-                if (inputKeyDown)
+                if (updateInfo.HoldKeyDown)
                 {
                     // Hold the point
-                    PointMover.SelectedPoint = point;
+                    PointMover.SelectedPoint = updateInfo.Point;
                     PointMover.SelectedPoint.OnPointerDown();
                     PointMover.CurrentState = PointMover.HoldingState;
                 }
                 else
                 {
                     // Hover the point
-                    PointMover.SelectedPoint = point;
+                    PointMover.SelectedPoint = updateInfo.Point;
                     PointMover.SelectedPoint.OnPointerEnter();
                     PointMover.CurrentState = PointMover.HoveringState;
                 }
@@ -118,28 +144,21 @@ public class PointMover : SerializedMonoBehaviour
             PointMover = pointMover;
         }
 
-        public void Update()
+        public void Update(UpdateInfo updateInfo)
         {
-            bool inputKeyDown = Input.GetKeyDown(KeyCode.Mouse0) || Input.GetKeyDown(KeyCode.F);
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            bool raycastHitSomePoint = Physics.Raycast(ray, out RaycastHit hit, float.MaxValue, PointMover.PointLayerMask);
-            Point point = null;
-            if (raycastHitSomePoint)
-                point = hit.collider.GetComponent<Point>();
-            
             PointMover.DisplayPointCoordinates(PointMover.SelectedPoint);
 
-            if (raycastHitSomePoint && point != null)
+            if (updateInfo.IsMouseOverPoint && updateInfo.Point != null)
             {
-                if (inputKeyDown)
+                if (updateInfo.HoldKeyDown)
                 {
                     // Hold the point
-                    if (point == PointMover.SelectedPoint)
+                    if (updateInfo.Point == PointMover.SelectedPoint)
                     {
                         PointMover.SelectedPoint.OnPointerDown();
 
-                        if (Physics.Raycast(ray, out hit, float.MaxValue, PointMover.MovementPlaneLayerMask))
-                            PointMover.SelectedPointOffset = PointMover.SelectedPoint.transform.position - hit.point;
+                        if (updateInfo.IsMouseOverMovementPlane)
+                            PointMover.SelectedPointOffset = PointMover.SelectedPoint.transform.position - updateInfo.MovementPlanePoint;
                         else
                             PointMover.SelectedPointOffset = Vector3.zero;
 
@@ -150,11 +169,11 @@ public class PointMover : SerializedMonoBehaviour
                         if (PointMover.SelectedPoint)
                             PointMover.SelectedPoint.OnPointerExit();
 
-                        PointMover.SelectedPoint = point;
+                        PointMover.SelectedPoint = updateInfo.Point;
                         PointMover.SelectedPoint.OnPointerDown();
                         
-                        if (Physics.Raycast(ray, out hit, float.MaxValue, PointMover.MovementPlaneLayerMask))
-                            PointMover.SelectedPointOffset = PointMover.SelectedPoint.transform.position - hit.point;
+                        if (updateInfo.IsMouseOverMovementPlane)
+                            PointMover.SelectedPointOffset = PointMover.SelectedPoint.transform.position - updateInfo.MovementPlanePoint;
                         else
                             PointMover.SelectedPointOffset = Vector3.zero;
 
@@ -163,13 +182,13 @@ public class PointMover : SerializedMonoBehaviour
                 }
                 else
                 {
-                    if (point != PointMover.SelectedPoint)
+                    if (updateInfo.Point != PointMover.SelectedPoint)
                     {
                         // Switch hover to new point
                         if (PointMover.SelectedPoint)
                             PointMover.SelectedPoint.OnPointerExit();
 
-                        PointMover.SelectedPoint = point;
+                        PointMover.SelectedPoint = updateInfo.Point;
                         PointMover.SelectedPoint.OnPointerEnter();
                         PointMover.CurrentState = PointMover.HoveringState;
                     }
@@ -193,37 +212,30 @@ public class PointMover : SerializedMonoBehaviour
             PointMover = pointMover;
         }
 
-        public void Update()
+        public void Update(UpdateInfo updateInfo)
         {
-            bool inputKeyDown = Input.GetKeyDown(KeyCode.Mouse0) || Input.GetKeyDown(KeyCode.F);
-            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            bool raycastHitSomePoint = Physics.Raycast(ray, out RaycastHit hit, float.MaxValue, PointMover.PointLayerMask);
-            Point point = null;
-            if (raycastHitSomePoint)
-                point = hit.collider.GetComponent<Point>();
-            
             PointMover.DisplayPointCoordinates(PointMover.SelectedPoint);
 
-            if (!inputKeyDown)
+            if (!updateInfo.HoldKeyUp)
             {
-                if (Physics.Raycast(ray, out hit, float.MaxValue, PointMover.MovementPlaneLayerMask))
+                if (updateInfo.IsMouseOverMovementPlane)
                 {
                     PointManager.Instance.DeregisterPoint(PointMover.SelectedPoint);
-                    PointMover.SelectedPoint.transform.position = hit.point + PointMover.SelectedPointOffset;
+                    PointMover.SelectedPoint.transform.position = updateInfo.MovementPlanePoint + PointMover.SelectedPointOffset;
                     PointManager.Instance.RegisterPoint(PointMover.SelectedPoint);
                 }
             }
             else
             {
-                if (raycastHitSomePoint && point != null)
+                if (updateInfo.IsMouseOverPoint && updateInfo.Point != null)
                 {
-                    if (point != PointMover.SelectedPoint)
+                    if (updateInfo.Point != PointMover.SelectedPoint)
                     {
                         // Switch hover to new point
                         if (PointMover.SelectedPoint)
                             PointMover.SelectedPoint.OnPointerExit();
 
-                        PointMover.SelectedPoint = point;
+                        PointMover.SelectedPoint = updateInfo.Point;
                         PointMover.SelectedPoint.OnPointerEnter();
                         PointMover.CurrentState = PointMover.HoveringState;
                     }
