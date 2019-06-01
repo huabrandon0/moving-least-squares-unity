@@ -85,7 +85,7 @@ public class TestBehaviour : SerializedMonoBehaviour
         MLS.DataPoints = dataPoints;
         double range = dataPoints[dataPoints.Count - 1][0] - dataPoints[0][0];
         double step = 0.05d;
-        EvaluationPoints = Enumerable.Range(0, (int)Math.Round(range / step)).Select(i => dataPoints[0][0] + i * step).ToList();
+        EvaluationPoints = Enumerable.Range(0, (int)Math.Ceiling(range / step) + 1).Select(i => dataPoints[0][0] + i * step).ToList();
         SetLineRendererPoints();
     }
 
