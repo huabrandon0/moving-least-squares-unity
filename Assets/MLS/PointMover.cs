@@ -221,7 +221,10 @@ public class PointMover : SerializedMonoBehaviour
                 if (updateInfo.IsMouseOverMovementPlane)
                 {
                     PointManager.Instance.DeregisterPoint(PointMover.SelectedPoint);
-                    PointMover.SelectedPoint.transform.position = updateInfo.MovementPlanePoint + PointMover.SelectedPointOffset;
+                    //PointMover.SelectedPoint.transform.position = updateInfo.MovementPlanePoint + PointMover.SelectedPointOffset;
+                    PointMover.SelectedPoint.transform.position = new Vector3(PointMover.SelectedPoint.transform.position.x,
+                        (updateInfo.MovementPlanePoint + PointMover.SelectedPointOffset).y,
+                        PointMover.SelectedPoint.transform.position.z); // Only moving y-position for now, until the MLS implementation can handle x-axis movements!
                     PointManager.Instance.RegisterPoint(PointMover.SelectedPoint);
                 }
             }
